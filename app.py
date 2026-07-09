@@ -1,8 +1,8 @@
 """
 Streamlit UI for the Agentic AI Code Analyzer.
 
-Premium, tabbed interface with sidebar configuration, analysis metrics,
-and exportable reports.
+Multi-theme interface offering Neo-Brutalism, Editorial Minimalist,
+and Nordic Eco designs, moving away from AI-tech clichés.
 """
 
 import time
@@ -26,102 +26,365 @@ st.set_page_config(
 )
 
 # ──────────────────────────────────────────────
-# CSS Styles & Animations (Glassmorphism & Neon)
+# Sidebar Theme Selector & Configuration
 # ──────────────────────────────────────────────
 
-st.markdown("""
-<style>
-    /* ── Global Styles & Custom Fonts ──────────────────────── */
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+with st.sidebar:
+    st.markdown("<h2 style='margin-top:0.5rem;'>🎨 Design Skin</h2>", unsafe_allow_html=True)
+    
+    selected_theme = st.selectbox(
+        "Select Interface Look",
+        options=["Neo-Brutalism", "Editorial Minimalist", "Nordic Eco"],
+        index=2, # Default to Nordic Eco
+        help="Instantly toggle the UI style skin."
+    )
+    
+    st.markdown("---")
+    st.markdown("## ⚙️ Engine Setup")
 
-    .stApp {
-        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        background-color: #0d0e15;
-        color: #f1f3f9;
+    selected_model = st.selectbox(
+        "🤖 Model Select",
+        options=list(AVAILABLE_MODELS.keys()),
+        format_func=lambda x: AVAILABLE_MODELS[x],
+        index=list(AVAILABLE_MODELS.keys()).index(DEFAULT_MODEL),
+        help="Select the LLM model for analysis.",
+    )
+
+    temperature = st.slider(
+        "🌡️ Temperature",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.0,
+        step=0.1,
+        help="Lower = more deterministic. Higher = more creative.",
+    )
+
+    max_tokens = st.select_slider(
+        "📏 Response Size Limit",
+        options=[1024, 2048, 4096, 8192],
+        value=4096,
+        help="Maximum response tokens.",
+    )
+
+    st.markdown("---")
+    st.markdown("### 📂 Code Upload")
+    uploaded_file = st.file_uploader(
+        "Upload code file to analyze",
+        type=["py", "js", "ts", "rs", "go", "cpp", "c", "java", "sql", "html", "css"],
+        help="Loads code directly into the workspace."
+    )
+
+    st.markdown("---")
+    st.markdown("### 📊 Engine Stats")
+    total_analyses = len(st.session_state.get("history", []))
+    st.metric("Workspace Analyses", total_analyses)
+    
+    st.markdown("---")
+    st.markdown(
+        "<div style='text-align:center; opacity:0.4; font-size:0.75rem; font-family:monospace;'>"
+        "LangGraph Engine v1.2<br>Groq Hyper-Inference"
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+# ──────────────────────────────────────────────
+# CSS Variable Definition Blocks based on Theme
+# ──────────────────────────────────────────────
+
+THEME_CSS = ""
+
+if selected_theme == "Neo-Brutalism":
+    THEME_CSS = """
+    :root {
+        /* App and Typography */
+        --bg-app: #f3f4f6;
+        --text-color: #000000;
+        --font-headers: 'JetBrains Mono', monospace;
+        --font-body: 'JetBrains Mono', monospace;
+        
+        /* Card Styles */
+        --bg-card: #ffffff;
+        --border-card: 3px solid #000000;
+        --border-radius-card: 0px;
+        --shadow-card: 6px 6px 0px #000000;
+        
+        /* Header Block */
+        --bg-header: #f43f5e;
+        --color-header-text: #ffffff;
+        --color-header-p: #ffffff;
+        --shadow-header: 6px 6px 0px #000000;
+        --border-radius-header: 0px;
+        --border-header: 3px solid #000000;
+        
+        /* Stats */
+        --bg-stat: #ffffff;
+        --border-stat: 3px solid #000000;
+        --shadow-stat: 4px 4px 0px #000000;
+        --border-radius-stat: 0px;
+        --color-stat-val: #f43f5e;
+        
+        /* Route Badges */
+        --badge-quick: #22c55e;
+        --badge-deep: #eab308;
+        --badge-security: #ef4444;
+        --badge-border: 2px solid #000000;
+        --badge-text-color: #000000;
+        --badge-radius: 0px;
+        
+        /* Pipeline Flow nodes */
+        --bg-node-completed: #22c55e;
+        --border-node-completed: 2px solid #000000;
+        --color-node-completed: #000000;
+        
+        --bg-node-active: #f43f5e;
+        --border-node-active: 2px solid #000000;
+        --color-node-active: #ffffff;
+        
+        --bg-node-skipped: #e5e7eb;
+        --border-node-skipped: 2px dashed #9ca3af;
+        --color-node-skipped: #9ca3af;
+        
+        /* General Accents */
+        --accent-line: #000000;
+        --input-border: 2px solid #000000;
     }
+    
+    /* Sidebar specific brutalist style overrides */
+    section[data-testid="stSidebar"] {
+        background-color: #f3f4f6 !important;
+        border-right: 3px solid #000000 !important;
+        color: #000000 !important;
+    }
+    section[data-testid="stSidebar"] * {
+        color: #000000 !important;
+    }
+    """
+elif selected_theme == "Editorial Minimalist":
+    THEME_CSS = """
+    :root {
+        /* App and Typography */
+        --bg-app: #faf9f6;
+        --text-color: #1c1917;
+        --font-headers: 'Playfair Display', Georgia, serif;
+        --font-body: 'Lora', Georgia, serif;
+        
+        /* Card Styles */
+        --bg-card: #ffffff;
+        --border-card: 1px solid #d6d3d1;
+        --border-radius-card: 2px;
+        --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        
+        /* Header Block */
+        --bg-header: #1c1917;
+        --color-header-text: #faf9f6;
+        --color-header-p: #d6d3d1;
+        --shadow-header: none;
+        --border-radius-header: 2px;
+        --border-header: 1px solid #1c1917;
+        
+        /* Stats */
+        --bg-stat: #ffffff;
+        --border-stat: 1px solid #e7e5e4;
+        --shadow-stat: none;
+        --border-radius-stat: 2px;
+        --color-stat-val: #991b1b;
+        
+        /* Route Badges */
+        --badge-quick: #f5f5f4;
+        --badge-deep: #f5f5f4;
+        --badge-security: #991b1b;
+        --badge-border: 1px solid #d6d3d1;
+        --badge-text-color: #1c1917;
+        --badge-radius: 2px;
+        
+        /* Pipeline Flow nodes */
+        --bg-node-completed: #f5f5f4;
+        --border-node-completed: 1px solid #d6d3d1;
+        --color-node-completed: #1c1917;
+        
+        --bg-node-active: #991b1b;
+        --border-node-active: 1px solid #991b1b;
+        --color-node-active: #faf9f6;
+        
+        --bg-node-skipped: transparent;
+        --border-node-skipped: 1px dashed #d6d3d1;
+        --color-node-skipped: #a8a29e;
+        
+        /* General Accents */
+        --accent-line: #991b1b;
+        --input-border: 1px solid #d6d3d1;
+    }
+    
+    /* Sidebar specific editorial style overrides */
+    section[data-testid="stSidebar"] {
+        background-color: #f5f5f4 !important;
+        border-right: 1px solid #d6d3d1 !important;
+        color: #1c1917 !important;
+    }
+    section[data-testid="stSidebar"] * {
+        color: #1c1917 !important;
+    }
+    """
+else: # Nordic Eco Theme
+    THEME_CSS = """
+    :root {
+        /* App and Typography */
+        --bg-app: #f2efe9;
+        --text-color: #2d3748;
+        --font-headers: 'Plus Jakarta Sans', sans-serif;
+        --font-body: 'Plus Jakarta Sans', sans-serif;
+        
+        /* Card Styles */
+        --bg-card: #ffffff;
+        --border-card: 1px solid rgba(0, 0, 0, 0.04);
+        --border-radius-card: 24px;
+        --shadow-card: 0 10px 25px -5px rgba(0,0,0,0.02), 0 8px 10px -6px rgba(0,0,0,0.02);
+        
+        /* Header Block */
+        --bg-header: #3c4e43;
+        --color-header-text: #f2efe9;
+        --color-header-p: #c7d2c4;
+        --shadow-header: 0 12px 30px rgba(60, 78, 67, 0.15);
+        --border-radius-header: 24px;
+        --border-header: 1px solid rgba(60, 78, 67, 0.2);
+        
+        /* Stats */
+        --bg-stat: #ffffff;
+        --border-stat: 1px solid rgba(0, 0, 0, 0.03);
+        --shadow-stat: 0 4px 12px rgba(0,0,0,0.01);
+        --border-radius-stat: 16px;
+        --color-stat-val: #3c4e43;
+        
+        /* Route Badges */
+        --badge-quick: #82957f;
+        --badge-deep: #b3a492;
+        --badge-security: #c88a75;
+        --badge-border: none;
+        --badge-text-color: #ffffff;
+        --badge-radius: 12px;
+        
+        /* Pipeline Flow nodes */
+        --bg-node-completed: rgba(130, 149, 127, 0.15);
+        --border-node-completed: 1px solid #82957f;
+        --color-node-completed: #3c4e43;
+        
+        --bg-node-active: #3c4e43;
+        --border-node-active: 1px solid #3c4e43;
+        --color-node-active: #f2efe9;
+        
+        --bg-node-skipped: rgba(0, 0, 0, 0.02);
+        --border-node-skipped: 1px dashed rgba(0, 0, 0, 0.15);
+        --color-node-skipped: #8d9096;
+        
+        /* General Accents */
+        --accent-line: #82957f;
+        --input-border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    
+    /* Sidebar specific nordic style overrides */
+    section[data-testid="stSidebar"] {
+        background-color: #eae6dd !important;
+        border-right: 1px solid rgba(0,0,0,0.05) !important;
+        color: #2d3748 !important;
+    }
+    section[data-testid="stSidebar"] * {
+        color: #2d3748 !important;
+    }
+    """
 
-    /* ── Glassmorphism Panels ──────────────────────── */
-    .glass-card {
-        background: rgba(22, 24, 37, 0.7);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 16px;
+# ──────────────────────────────────────────────
+# Style Block Injection
+# ──────────────────────────────────────────────
+
+st.markdown(f"""
+<style>
+    {THEME_CSS}
+    
+    /* ── Global Styles ──────────────────────── */
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap');
+
+    .stApp {{
+        font-family: var(--font-body), sans-serif;
+        background-color: var(--bg-app);
+        color: var(--text-color);
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }}
+
+    h1, h2, h3, h4, h5, h6 {{
+        font-family: var(--font-headers), sans-serif !important;
+        color: var(--text-color) !important;
+        font-weight: 700;
+    }}
+
+    /* ── Card Styling ──────────────────────── */
+    .glass-card {{
+        background-color: var(--bg-card);
+        border: var(--border-card);
+        border-radius: var(--border-radius-card);
         padding: 1.5rem;
         margin-bottom: 1.5rem;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-    }
+        box-shadow: var(--shadow-card);
+        transition: all 0.3s ease;
+    }}
 
-    .main-header {
-        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
+    .main-header {{
+        background: var(--bg-header);
+        border: var(--border-header);
         padding: 2.5rem;
-        border-radius: 20px;
+        border-radius: var(--border-radius-header);
         margin-bottom: 2rem;
-        color: white;
-        box-shadow: 0 12px 40px rgba(79, 70, 229, 0.3);
+        color: var(--color-header-text);
+        box-shadow: var(--shadow-header);
         position: relative;
-        overflow: hidden;
-    }
+    }}
 
-    .main-header::after {
-        content: '';
-        position: absolute;
-        top: 0; right: 0; bottom: 0; left: 0;
-        background: radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%);
-    }
-
-    .main-header h1 {
-        margin: 0;
-        font-size: 2.5rem;
+    .main-header h1 {{
+        color: var(--color-header-text) !important;
         font-weight: 800;
-        letter-spacing: -1px;
-        font-family: 'Plus Jakarta Sans', sans-serif;
-    }
+        margin: 0;
+    }}
 
-    .main-header p {
+    .main-header p {{
+        color: var(--color-header-p) !important;
         margin: 0.75rem 0 0;
-        opacity: 0.9;
-        font-size: 1.15rem;
-        font-weight: 300;
-        max-width: 800px;
-    }
+        font-size: 1.1rem;
+        font-weight: 400;
+    }}
 
-    /* ── Dashboard Stats ──────────────────────── */
-    .dashboard-stat-card {
-        background: rgba(30, 32, 50, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.03);
-        border-radius: 12px;
+    /* ── Stats Dashboard ──────────────────────── */
+    .dashboard-stat-card {{
+        background-color: var(--bg-stat);
+        border: var(--border-stat);
+        border-radius: var(--border-radius-stat);
         padding: 1.25rem;
         text-align: center;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    }
+        box-shadow: var(--shadow-stat);
+        transition: transform 0.3s ease;
+    }}
 
-    .dashboard-stat-card:hover {
-        transform: translateY(-4px);
-        border-color: rgba(124, 58, 237, 0.3);
-        box-shadow: 0 10px 25px rgba(124, 58, 237, 0.15);
-    }
+    .dashboard-stat-card:hover {{
+        transform: translateY(-2px);
+    }}
 
-    .dashboard-stat-value {
+    .dashboard-stat-value {{
         font-size: 2rem;
         font-weight: 800;
         margin: 0.25rem 0;
-        background: linear-gradient(135deg, #a78bfa 0%, #ec4899 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
+        color: var(--color-stat-val);
+        font-family: var(--font-headers), sans-serif;
+    }}
 
-    .dashboard-stat-label {
+    .dashboard-stat-label {{
         font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 1.5px;
-        color: #9ca3af;
+        color: var(--text-color);
+        opacity: 0.6;
         font-weight: 600;
-    }
+    }}
 
-    /* ── Dynamic Pipeline Flow ──────────────────────── */
-    .pipeline-wrapper {
+    /* ── Pipeline Flows ──────────────────────── */
+    .pipeline-wrapper {{
         display: flex;
         align-items: center;
         justify-content: center;
@@ -129,127 +392,132 @@ st.markdown("""
         gap: 0.75rem;
         margin: 1.5rem 0;
         padding: 1rem;
-        background: rgba(17, 19, 31, 0.5);
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.02);
-    }
+        background-color: rgba(0, 0, 0, 0.02);
+        border-radius: var(--border-radius-card);
+        border: var(--border-card);
+    }}
 
-    .pipeline-node {
+    .pipeline-node {{
         padding: 0.5rem 1.25rem;
-        border-radius: 30px;
+        border-radius: var(--badge-radius);
         font-size: 0.85rem;
         font-weight: 600;
         transition: all 0.3s ease;
         display: flex;
         align-items: center;
         gap: 0.5rem;
-    }
+    }}
 
-    .node-completed {
-        background: rgba(16, 185, 129, 0.1);
-        color: #34d399;
-        border: 1px solid rgba(16, 185, 129, 0.3);
-    }
+    .node-completed {{
+        background-color: var(--bg-node-completed);
+        color: var(--color-node-completed);
+        border: var(--border-node-completed);
+    }}
 
-    .node-active {
-        background: rgba(124, 58, 237, 0.2);
-        color: #c084fc;
-        border: 1px solid rgba(124, 58, 237, 0.6);
-        box-shadow: 0 0 15px rgba(124, 58, 237, 0.3);
-        animation: pulse-glow 2s infinite alternate;
-    }
+    .node-active {{
+        background-color: var(--bg-node-active);
+        color: var(--color-node-active);
+        border: var(--border-node-active);
+    }}
 
-    .node-skipped {
-        background: rgba(55, 65, 81, 0.2);
-        color: #6b7280;
-        border: 1px dashed rgba(55, 65, 81, 0.4);
-    }
+    .node-skipped {{
+        background-color: var(--bg-node-skipped);
+        color: var(--color-node-skipped);
+        border: var(--border-node-skipped);
+    }}
 
-    @keyframes pulse-glow {
-        from { box-shadow: 0 0 5px rgba(124, 58, 237, 0.2); }
-        to { box-shadow: 0 0 20px rgba(124, 58, 237, 0.5); }
-    }
+    /* ── Status Badges ──────────────────────── */
+    .status-badge {{
+        display: inline-block;
+        padding: 0.3rem 0.9rem;
+        border-radius: var(--badge-radius);
+        border: var(--badge-border);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: var(--badge-text-color);
+    }}
 
-    /* ── Progress Indicators & Scorecard ──────────────────────── */
-    .progress-bar-container {
+    .badge-quick {{ background-color: var(--badge-quick); }}
+    .badge-deep {{ background-color: var(--badge-deep); }}
+    .badge-security {{ background-color: var(--badge-security); }}
+
+    /* ── Progress bars ──────────────────────── */
+    .progress-bar-container {{
         margin-bottom: 1.25rem;
-    }
+    }}
 
-    .progress-bar-header {
+    .progress-bar-header {{
         display: flex;
         justify-content: space-between;
         font-size: 0.85rem;
         margin-bottom: 0.4rem;
-        font-weight: 500;
-    }
+        font-weight: 600;
+    }}
 
-    .progress-bar-track {
-        height: 8px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 4px;
+    .progress-bar-track {{
+        height: 10px;
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: var(--badge-radius);
+        border: var(--border-card);
         overflow: hidden;
-    }
+    }}
 
-    .progress-bar-fill {
+    .progress-bar-fill {{
         height: 100%;
-        border-radius: 4px;
-        transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
-    }
+        transition: width 1s ease-in-out;
+    }}
 
-    /* ── Security Risk Cards ──────────────────────── */
-    .risk-card {
-        border-left: 4px solid;
-        border-radius: 6px;
+    /* ── Vulnerability Cards ──────────────────────── */
+    .risk-card {{
+        border: var(--border-card);
+        border-left-width: 8px !important;
+        border-radius: var(--border-radius-card);
         padding: 1rem;
         margin-bottom: 0.75rem;
-        background: rgba(255, 255, 255, 0.02);
-        transition: all 0.2s ease;
-    }
+        background-color: var(--bg-card);
+        transition: transform 0.2s ease;
+    }}
 
-    .risk-card:hover {
-        background: rgba(255, 255, 255, 0.04);
+    .risk-card:hover {{
         transform: translateX(4px);
-    }
+    }}
 
-    .risk-critical { border-left-color: #ef4444; background: rgba(239, 68, 68, 0.03); }
-    .risk-high { border-left-color: #f97316; background: rgba(249, 115, 22, 0.03); }
-    .risk-medium { border-left-color: #eab308; background: rgba(234, 179, 8, 0.03); }
-    .risk-low { border-left-color: #3b82f6; background: rgba(59, 130, 246, 0.03); }
-    .risk-info { border-left-color: #9ca3af; background: rgba(156, 163, 175, 0.03); }
+    .risk-critical {{ border-left-color: #ef4444 !important; }}
+    .risk-high {{ border-left-color: #f97316 !important; }}
+    .risk-medium {{ border-left-color: #eab308 !important; }}
+    .risk-low {{ border-left-color: #3b82f6 !important; }}
+    .risk-info {{ border-left-color: #9ca3af !important; }}
 
-    .risk-header {
+    .risk-header {{
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 0.25rem;
-    }
+    }}
 
-    .risk-badge {
+    .risk-badge {{
         font-size: 0.7rem;
         text-transform: uppercase;
         font-weight: 700;
-        padding: 0.2rem 0.5rem;
-        border-radius: 4px;
-    }
+        padding: 0.25rem 0.6rem;
+        border-radius: var(--badge-radius);
+        border: var(--border-card);
+    }}
 
-    .badge-critical { background: #ef4444; color: white; }
-    .badge-high { background: #f97316; color: white; }
-    .badge-medium { background: #eab308; color: black; }
-    .badge-low { background: #3b82f6; color: white; }
-    .badge-info { background: #6b7280; color: white; }
+    .badge-critical {{ background-color: #ef4444; color: white; }}
+    .badge-high {{ background-color: #f97316; color: white; }}
+    .badge-medium {{ background-color: #eab308; color: black; }}
+    .badge-low {{ background-color: #3b82f6; color: white; }}
+    .badge-info {{ background-color: #6b7280; color: white; }}
 
-    /* ── Sidebar Style Overrides ──────────────────────── */
-    section[data-testid="stSidebar"] {
-        background: #090a0f !important;
-        border-right: 1px solid rgba(255,255,255,0.03);
-    }
-
-    .sidebar-title {
-        font-family: 'Plus Jakarta Sans', sans-serif;
-        font-weight: 700;
-        color: #f1f3f9;
-        margin-top: 1rem;
-    }
+    /* ── Custom Dividers ──────────────────────── */
+    .custom-divider {{
+        height: 2px;
+        background-color: var(--accent-line);
+        margin: 1.5rem 0;
+        opacity: 0.2;
+    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -289,83 +557,6 @@ def lookup_user(username, database_path):
     return cursor.fetchall()
 """
 }
-
-# ──────────────────────────────────────────────
-# Sidebar Configuration
-# ──────────────────────────────────────────────
-
-with st.sidebar:
-    st.markdown("<h2 class='sidebar-title'>⚙️ Engine Setup</h2>", unsafe_allow_html=True)
-    st.markdown("---")
-
-    selected_model = st.selectbox(
-        "🤖 Model Select",
-        options=list(AVAILABLE_MODELS.keys()),
-        format_func=lambda x: AVAILABLE_MODELS[x],
-        index=list(AVAILABLE_MODELS.keys()).index(DEFAULT_MODEL),
-        help="Select the LLM model for analysis.",
-    )
-
-    temperature = st.slider(
-        "🌡️ Temperature",
-        min_value=0.0,
-        max_value=1.0,
-        value=0.0,
-        step=0.1,
-        help="Lower = more deterministic. Higher = more creative.",
-    )
-
-    max_tokens = st.select_slider(
-        "📏 Response Size Limit",
-        options=[1024, 2048, 4096, 8192],
-        value=4096,
-        help="Maximum response tokens.",
-    )
-
-    st.markdown("---")
-    st.markdown("<h3 class='sidebar-title'>📂 Code Upload</h3>", unsafe_allow_html=True)
-    uploaded_file = st.file_uploader(
-        "Upload code file to analyze",
-        type=["py", "js", "ts", "rs", "go", "cpp", "c", "java", "sql", "html", "css"],
-        help="Loads code directly into the workspace."
-    )
-
-    st.markdown("---")
-    st.markdown("<h3 class='sidebar-title'>📊 Engine Stats</h3>", unsafe_allow_html=True)
-    total_analyses = len(st.session_state.get("history", []))
-    st.metric("Workspace Analyses", total_analyses)
-    
-    st.markdown("---")
-    st.markdown(
-        "<div style='text-align:center; opacity:0.4; font-size:0.75rem; font-family:monospace;'>"
-        "LangGraph Engine v1.2<br>Groq Hyper-Inference"
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
-# ──────────────────────────────────────────────
-# Header Display
-# ──────────────────────────────────────────────
-
-st.markdown(
-    """
-    <div class="main-header">
-        <h1>🧠 Agentic AI Developer Workspace</h1>
-        <p>A multi-agent development dashboard utilizing cooperative specialist agents for static analysis, security validation, and performance profiling.</p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-# ──────────────────────────────────────────────
-# State Initialization
-# ──────────────────────────────────────────────
-
-if "history" not in st.session_state:
-    st.session_state.history = []
-
-if "current_result" not in st.session_state:
-    st.session_state.current_result = None
 
 # Determine initial text based on templates or file uploads
 initial_code = ""
@@ -414,7 +605,7 @@ with col_run_btn:
 
 with col_run_info:
     st.markdown(
-        f"<div style='padding-top: 0.5rem; opacity:0.7; font-size:0.85rem;'>"
+        f"<div style='padding-top: 0.5rem; opacity:0.7; font-size:0.85rem; font-family:var(--font-headers);'>"
         f"Selected Model: <b>{AVAILABLE_MODELS[selected_model]}</b> &nbsp;|&nbsp; "
         f"Lines: <b>{len(user_code.splitlines()) if user_code else 0}</b>"
         f"</div>",
@@ -542,7 +733,7 @@ def parse_refactored_code(report_text: str) -> str:
 # Dashboard Output Rendering
 # ──────────────────────────────────────────────
 
-if st.session_state.current_result:
+if st.session_state.get("current_result"):
     res_data = st.session_state.current_result
     res_graph = res_data["result"]
     dur = res_data["elapsed"]
@@ -587,7 +778,7 @@ if st.session_state.current_result:
     with kpi_col3:
         st.markdown(
             f"""<div class="dashboard-stat-card">
-                <div class="dashboard-stat-label">Detected Language</div>
+                <div class="dashboard-stat-label">Language</div>
                 <div class="dashboard-stat-value" style="font-size:1.6rem; padding-top:0.35rem;">{language.upper()}</div>
             </div>""",
             unsafe_allow_html=True
@@ -626,12 +817,12 @@ if st.session_state.current_result:
             status_cls = "node-active"
         pipeline_nodes_html += f'<div class="pipeline-node {status_cls}">{name}</div>'
         if name != "Aggregator":
-            pipeline_nodes_html += '<span style="color:rgba(255,255,255,0.15)">➔</span>'
+            pipeline_nodes_html += '<span style="color:var(--text-color); opacity:0.3;">➔</span>'
 
     st.markdown(
         f"""
         <div class="glass-card" style="padding: 1rem 1.5rem; display: flex; flex-direction: column; align-items: center;">
-            <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color:#9ca3af; margin-bottom: 0.75rem; font-weight:600;">Active Agent Workflow Pathway</div>
+            <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color:var(--text-color); opacity:0.7; margin-bottom: 0.75rem; font-weight:600; font-family:var(--font-headers);">Active Agent Workflow Pathway</div>
             <div class="pipeline-wrapper" style="margin: 0; width: 100%;">{pipeline_nodes_html}</div>
         </div>
         """,
@@ -704,10 +895,10 @@ if st.session_state.current_result:
                 st.markdown(
                     f"""<div class="risk-card {cls}">
                         <div class="risk-header">
-                            <span style="font-weight:700; color:#f1f3f9;">{item['description']}</span>
+                            <span style="font-weight:700; color:var(--text-color);">{item['description']}</span>
                             <span class="risk-badge {badge_cls}">{sev}</span>
                         </div>
-                        <div style="font-size:0.8rem; color:#9ca3af; margin-top:0.25rem;">Detected at line: <b>{item['line']}</b></div>
+                        <div style="font-size:0.8rem; color:var(--text-color); opacity:0.7; margin-top:0.25rem;">Detected at line: <b>{item['line']}</b></div>
                     </div>""",
                     unsafe_allow_html=True
                 )
@@ -735,6 +926,12 @@ if st.session_state.current_result:
             "Best Practices": "#ec4899"
         }
 
+        # Override colors if Brutalist or Editorial themes are selected
+        if selected_theme == "Neo-Brutalism":
+            score_colors = {k: "#000000" for k in score_colors}
+        elif selected_theme == "Editorial Minimalist":
+            score_colors = {k: "#991b1b" for k in score_colors}
+
         for cat, score in scorecard_scores.items():
             color = score_colors.get(cat, "#7c3aed")
             st.markdown(
@@ -756,7 +953,7 @@ if st.session_state.current_result:
 # History Panel
 # ──────────────────────────────────────────────
 
-if len(st.session_state.history) > 1:
+if len(st.session_state.get("history", [])) > 1:
     st.markdown('<div class="custom-divider"></div>', unsafe_allow_html=True)
     st.markdown("### 📜 Workspace Evaluation History")
 
