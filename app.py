@@ -22,14 +22,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Minimal CSS — only accent touches, no layout overrides
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-    [data-testid="stSidebarCollapsedControl"] { display: none; }
-    section[data-testid="stSidebar"] { display: none; }
-</style>
-""", unsafe_allow_html=True)
+# Load CSS from external file to keep linter clean
+import pathlib as _pathlib
+
+_css_path = _pathlib.Path(__file__).parent / "style.css"
+if _css_path.exists():
+    st.markdown(f"<style>{_css_path.read_text()}</style>", unsafe_allow_html=True)
 
 # ──────────────────────────────────────────────
 # Session State
