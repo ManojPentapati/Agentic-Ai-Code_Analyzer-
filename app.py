@@ -110,7 +110,7 @@ def list_code_files(dir_path: str) -> list[str]:
 
 top_left, top_right = st.columns([3, 1])
 with top_left:
-    st.markdown("## Code Analyzer")
+    st.markdown("## :material/analytics: Code Analyzer")
     st.caption("Multi-agent code review, security analysis & performance optimization")
 with top_right:
     st.metric("Total Runs", len(st.session_state.history))
@@ -123,7 +123,7 @@ cloned_dir = None
 selected_git_file = None
 git_url = ""
 
-with st.expander("Settings & Configuration"):
+with st.expander(":material/settings: Settings & Configuration"):
     c1, c2, c3 = st.columns(3)
     with c1:
         selected_model = st.selectbox(
@@ -226,7 +226,7 @@ with col_code:
         placeholder="Paste code here, or pick a template from the right panel",
     )
 
-analyze = st.button("Run Analysis", type="primary", use_container_width=True)
+analyze = st.button("Run Analysis", type="primary", icon=":material/play_arrow:", use_container_width=True)
 
 # --- Execution ---
 
@@ -386,7 +386,14 @@ if st.session_state.get("current_result"):
 
     # Tabbed Results
     tab_report, tab_compare, tab_vulns, tab_linter, tab_perf, tab_scores = st.tabs(
-        ["Report", "Compare", "Vulnerabilities", "Linter (Ruff)", "Performance", "Scores"]
+        [
+            ":material/description: Report",
+            ":material/compare: Compare",
+            ":material/security: Vulnerabilities",
+            ":material/bug_report: Linter (Ruff)",
+            ":material/speed: Performance",
+            ":material/star: Scores",
+        ]
     )
 
     with tab_report:
@@ -402,6 +409,7 @@ if st.session_state.get("current_result"):
                 report or "",
                 "analysis_report.md",
                 "text/markdown",
+                icon=":material/download:",
                 use_container_width=True,
             )
         with col2:
@@ -412,6 +420,7 @@ if st.session_state.get("current_result"):
                     pdf_bytes,
                     "analysis_report.pdf",
                     "application/pdf",
+                    icon=":material/download:",
                     use_container_width=True,
                 )
             except Exception as e:
@@ -473,15 +482,15 @@ if st.session_state.get("current_result"):
             for v in vulns:
                 sev = v["sev"]
                 icon = {
-                    "CRITICAL": "!!",
-                    "HIGH": "!",
-                    "MEDIUM": "~",
-                    "LOW": "-",
-                    "INFO": "i",
-                }.get(sev, "i")
+                    "CRITICAL": ":material/dangerous:",
+                    "HIGH": ":material/warning:",
+                    "MEDIUM": ":material/report:",
+                    "LOW": ":material/info:",
+                    "INFO": ":material/help:",
+                }.get(sev, ":material/help:")
                 with st.container(border=True):
                     vc1, vc2 = st.columns([4, 1])
-                    vc1.markdown(f"[{icon}] **{v['desc']}**")
+                    vc1.markdown(f"{icon} **{v['desc']}**")
                     vc1.caption(f"Line {v['line']}")
                     vc2.markdown(f"**{sev}**")
 
