@@ -99,3 +99,8 @@ button[data-baseweb="tab"][aria-selected="true"] {
 hr {
     border-color: #e5e7eb !important;
 }
+
+/* Hide Streamlit settings MainMenu and footer */
+#MainMenu { visibility: hidden; }
+header { visibility: hidden; }
+footer { visibility: hidden; }
