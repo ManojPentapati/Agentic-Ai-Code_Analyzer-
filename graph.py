@@ -18,10 +18,11 @@ import logging
 from datetime import datetime, timezone
 
 from langchain_core.messages import HumanMessage, AIMessage
+# pyrefly: ignore [missing-import]
 from langgraph.graph import StateGraph, START, END
 
 from state import AnalyzerState
-from tools import detect_language, calculate_complexity, scan_security_patterns, check_code_patterns
+from tools import detect_language, calculate_complexity, scan_security_patterns, check_code_patterns, run_ruff_linter
 from agents import (
     create_router_chain,
     create_code_review_chain,
@@ -50,6 +51,12 @@ def preprocess_node(state: AnalyzerState) -> dict:
     security = scan_security_patterns.invoke({"code": code})
     patterns = check_code_patterns.invoke({"code": code})
 
+    # Run Ruff linter only on Python code
+    if language.lower() == "python":
+        lint_report = run_ruff_linter.invoke({"code": code})
+    else:
+        lint_report = f"[INFO] Ruff linter is skipped (non-Python code)."
+
     # Extract complexity score from the tool output
     score = 0
     for line in complexity.split("\n"):
@@ -67,6 +74,7 @@ def preprocess_node(state: AnalyzerState) -> dict:
         f"### Complexity Report\n```\n{complexity}\n```\n\n"
         f"### Security Scan\n{security}\n\n"
         f"### Code Patterns\n{patterns}\n\n"
+        f"### Linter Report (Ruff)\n{lint_report}\n\n"
         f"---\n\n"
         f"**Code to analyze:**\n```{language}\n{code}\n```"
     )
@@ -74,6 +82,7 @@ def preprocess_node(state: AnalyzerState) -> dict:
     return {
         "language": language,
         "complexity_score": score,
+        "lint_report": lint_report,
         "messages": [HumanMessage(content=context)],
         "metadata": {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -220,22 +229,6 @@ def aggregate_node(state: AnalyzerState) -> dict:
 # Routing Logic
 # ──────────────────────────────────────────────
 
-def route_analysis(state: AnalyzerState) -> str:
-    """
-    Conditional edge function: returns the next node name
-    based on the router's decision.
-    """
-    analysis_type = state.get("analysis_type", "quick")
-
-    routing_map = {
-        "quick": "code_review",
-        "deep": "code_review",
-        "security_focused": "code_review",
-    }
-
-    return routing_map.get(analysis_type, "code_review")
-
-
 def route_after_review(state: AnalyzerState) -> str:
     """
     After code review, decide whether to continue to
@@ -250,16 +243,6 @@ def route_after_review(state: AnalyzerState) -> str:
     elif analysis_type == "security_focused":
         return "security"
 
-    return "aggregate"
-
-
-def route_after_security(state: AnalyzerState) -> str:
-    """After security analysis, always proceed to optimization."""
-    return "optimize"
-
-
-def route_after_optimization(state: AnalyzerState) -> str:
-    """After optimization, always proceed to aggregation."""
     return "aggregate"
 
 
@@ -286,18 +269,10 @@ def build_workflow():
     graph.add_node("optimize", optimization_node)
     graph.add_node("aggregate", aggregate_node)
 
-    # Linear edges: START → preprocess → router
+    # Linear edges: START → preprocess → router → code_review
     graph.add_edge(START, "preprocess")
     graph.add_edge("preprocess", "router")
-
-    # Conditional: router → code_review (always, but sets up the path)
-    graph.add_conditional_edges(
-        "router",
-        route_analysis,
-        {
-            "code_review": "code_review",
-        },
-    )
+    graph.add_edge("router", "code_review")
 
     # Conditional: code_review → aggregate | optimize | security
     graph.add_conditional_edges(
@@ -310,25 +285,9 @@ def build_workflow():
         },
     )
 
-    # Conditional: security → optimize
-    graph.add_conditional_edges(
-        "security",
-        route_after_security,
-        {
-            "optimize": "optimize",
-        },
-    )
-
-    # Conditional: optimize → aggregate
-    graph.add_conditional_edges(
-        "optimize",
-        route_after_optimization,
-        {
-            "aggregate": "aggregate",
-        },
-    )
-
-    # Final edge: aggregate → END
+    # Static transitions: security → optimize → aggregate → END
+    graph.add_edge("security", "optimize")
+    graph.add_edge("optimize", "aggregate")
     graph.add_edge("aggregate", END)
 
     workflow = graph.compile()

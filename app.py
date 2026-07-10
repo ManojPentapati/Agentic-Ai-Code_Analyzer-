@@ -8,6 +8,7 @@ import streamlit as st
 from config import AppConfig, AVAILABLE_MODELS, DEFAULT_MODEL, logger
 from state import create_initial_state
 from graph import build_workflow
+from pdf_generator import generate_analysis_pdf
 
 # --- Page Config ---
 
@@ -30,6 +31,81 @@ if "history" not in st.session_state:
 if "current_result" not in st.session_state:
     st.session_state.current_result = None
 
+
+def clone_repo(repo_url: str) -> str | None:
+    """Clones a git repository into .temp_cloned_repos/ and returns the local directory path."""
+    import subprocess
+    import shutil
+    import urllib.parse
+
+    try:
+        parsed_url = urllib.parse.urlparse(repo_url)
+        path_parts = parsed_url.path.strip("/").split("/")
+        if not path_parts or path_parts[-1] == "":
+            return None
+        repo_name = path_parts[-1]
+        if repo_name.endswith(".git"):
+            repo_name = repo_name[:-4]
+    except Exception:
+        return None
+
+    base_dir = pathlib.Path(__file__).parent / ".temp_cloned_repos"
+    target_dir = base_dir / repo_name
+
+    # If it already exists and is a valid git repo, we can reuse it
+    if target_dir.exists() and (target_dir / ".git").exists():
+        return str(target_dir)
+
+    # Otherwise clean and clone
+    if target_dir.exists():
+        shutil.rmtree(target_dir, ignore_errors=True)
+
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        # Run clone with depth 1
+        subprocess.run(
+            ["git", "clone", "--depth", "1", repo_url, str(target_dir)],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return str(target_dir)
+    except Exception as e:
+        st.error(f"Failed to clone repository: {e}")
+        if target_dir.exists():
+            shutil.rmtree(target_dir, ignore_errors=True)
+        return None
+
+
+def list_code_files(dir_path: str) -> list[str]:
+    """List code files recursively in the directory matching key extensions."""
+    supported_exts = {
+        ".py",
+        ".js",
+        ".ts",
+        ".rs",
+        ".go",
+        ".cpp",
+        ".c",
+        ".java",
+        ".sql",
+        ".html",
+        ".css",
+    }
+    base_path = pathlib.Path(dir_path)
+    file_list = []
+
+    for p in base_path.rglob("*"):
+        if p.is_file() and p.suffix.lower() in supported_exts:
+            # Skip hidden files/directories (like .git)
+            parts = p.relative_to(base_path).parts
+            if any(part.startswith(".") for part in parts):
+                continue
+            file_list.append(str(p.relative_to(base_path)))
+
+    return sorted(file_list)
+
 # --- Top Bar (using native columns) ---
 
 top_left, top_right = st.columns([3, 1])
@@ -43,8 +119,12 @@ st.divider()
 
 # --- Settings Row ---
 
+cloned_dir = None
+selected_git_file = None
+git_url = ""
+
 with st.expander("Settings & Configuration"):
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3 = st.columns(3)
     with c1:
         selected_model = st.selectbox(
             "Model",
@@ -56,11 +136,32 @@ with st.expander("Settings & Configuration"):
         temperature = st.slider("Temperature", 0.0, 1.0, 0.0, 0.1)
     with c3:
         max_tokens = st.select_slider("Max Tokens", [1024, 2048, 4096, 8192], 4096)
+
+    st.divider()
+
+    c4, c5 = st.columns(2)
     with c4:
         uploaded_file = st.file_uploader(
             "Upload code file",
             type=["py", "js", "ts", "rs", "go", "cpp", "c", "java", "sql", "html", "css"],
         )
+    with c5:
+        git_url = st.text_input(
+            "Clone public Git Repository URL",
+            placeholder="https://github.com/username/repo",
+            help="Provide a public git repository URL to index and analyze its source files."
+        )
+
+    # If Git URL is provided, clone and let user pick a file
+    if git_url:
+        cloned_dir = clone_repo(git_url)
+        if cloned_dir:
+            git_files = list_code_files(cloned_dir)
+            if git_files:
+                selected_git_file = st.selectbox(
+                    "Select file from repository to analyze",
+                    ["-- Choose a file --"] + git_files
+                )
 
 # --- Templates ---
 
@@ -95,6 +196,13 @@ if uploaded_file:
         initial_code = uploaded_file.read().decode("utf-8")
     except Exception:
         pass
+
+if git_url and selected_git_file and selected_git_file != "-- Choose a file --" and cloned_dir:
+    try:
+        file_path = pathlib.Path(cloned_dir) / selected_git_file
+        initial_code = file_path.read_text(encoding="utf-8")
+    except Exception as e:
+        st.error(f"Failed to read file: {e}")
 
 with col_opts:
     st.markdown("**Load a template**")
@@ -277,8 +385,8 @@ if st.session_state.get("current_result"):
     st.divider()
 
     # Tabbed Results
-    tab_report, tab_compare, tab_vulns, tab_perf, tab_scores = st.tabs(
-        ["Report", "Compare", "Vulnerabilities", "Performance", "Scores"]
+    tab_report, tab_compare, tab_vulns, tab_linter, tab_perf, tab_scores = st.tabs(
+        ["Report", "Compare", "Vulnerabilities", "Linter (Ruff)", "Performance", "Scores"]
     )
 
     with tab_report:
@@ -287,28 +395,68 @@ if st.session_state.get("current_result"):
         else:
             st.info("No report generated.")
         st.divider()
-        st.download_button(
-            "Download Report",
-            report or "",
-            "analysis_report.md",
-            "text/markdown",
-            use_container_width=True,
-        )
+        col1, col2 = st.columns(2)
+        with col1:
+            st.download_button(
+                "Download Markdown Report",
+                report or "",
+                "analysis_report.md",
+                "text/markdown",
+                use_container_width=True,
+            )
+        with col2:
+            try:
+                pdf_bytes = generate_analysis_pdf(rd)
+                st.download_button(
+                    "Download PDF Report",
+                    pdf_bytes,
+                    "analysis_report.pdf",
+                    "application/pdf",
+                    use_container_width=True,
+                )
+            except Exception as e:
+                st.error(f"Failed to generate PDF: {e}")
 
     with tab_compare:
         ref = _parse_code_block(
             r.get("code_review", "")
         ) or _parse_code_block(r.get("optimization_report", ""))
-        lc, rc = st.columns(2)
-        with lc:
-            st.markdown("**Original Code**")
-            st.code(rd["code"], language=lang if lang != "unknown" else "python")
-        with rc:
-            st.markdown("**Refactored Code**")
-            if ref:
-                st.code(ref, language=lang if lang != "unknown" else "python")
+
+        if not ref:
+            st.info("No refactored code was returned by the agents.")
+        else:
+            layout = st.radio(
+                "Comparison Layout",
+                ["Side-by-side", "Unified Diff"],
+                horizontal=True,
+                key="diff_layout_select",
+            )
+
+            if layout == "Side-by-side":
+                lc, rc = st.columns(2)
+                with lc:
+                    st.markdown("**Original Code**")
+                    st.code(rd["code"], language=lang if lang != "unknown" else "python")
+                with rc:
+                    st.markdown("**Refactored Code**")
+                    st.code(ref, language=lang if lang != "unknown" else "python")
             else:
-                st.info("No refactored code was returned by the agents.")
+                import difflib
+                diff = difflib.unified_diff(
+                    rd["code"].splitlines(),
+                    ref.splitlines(),
+                    fromfile="Original",
+                    tofile="Refactored",
+                    lineterm="",
+                )
+                diff_list = list(diff)
+                if len(diff_list) >= 2:
+                    diff_text = "\n".join(diff_list[2:])
+                else:
+                    diff_text = "\n".join(diff_list)
+
+                st.markdown("**Unified Diff**")
+                st.code(diff_text, language="diff")
 
     with tab_vulns:
         sec_text = r.get("security_report", "")
@@ -341,6 +489,22 @@ if st.session_state.get("current_result"):
             st.divider()
             st.markdown("**Detailed Security Report**")
             st.markdown(sec_text)
+
+    with tab_linter:
+        lint_report = r.get("lint_report", "")
+        if not lint_report:
+            st.info("No linter report available.")
+        elif "[PASS]" in lint_report:
+            st.success("Ruff Linter: No issues or styling violations detected!")
+        elif "[ERROR]" in lint_report:
+            st.error(lint_report)
+        else:
+            st.warning("Ruff Linter: Styling/Bug issues found")
+            for line in lint_report.split("\n"):
+                if line.strip().startswith("- "):
+                    st.markdown(line)
+                else:
+                    st.caption(line)
 
     with tab_perf:
         opt = r.get("optimization_report", "")

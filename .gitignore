@@ -34,3 +34,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Cloned temporary repos
+.temp_cloned_repos/

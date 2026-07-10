@@ -43,6 +43,7 @@ class AnalyzerState(TypedDict, total=False):
     code_review: str                # Output from the Code Review Agent
     security_report: str            # Output from the Security Agent
     optimization_report: str        # Output from the Optimization Agent
+    lint_report: str                # Output from Ruff Linter (if python)
     final_report: str               # Aggregated final analysis
 
     # ── Message History ──────────────────────
@@ -72,6 +73,7 @@ def create_initial_state(query: str) -> AnalyzerState:
         code_review="",
         security_report="",
         optimization_report="",
+        lint_report="",
         final_report="",
         messages=[],
         metadata=AnalysisMetadata(),

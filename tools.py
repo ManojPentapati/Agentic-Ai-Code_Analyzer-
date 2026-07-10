@@ -287,6 +287,84 @@ def check_code_patterns(code: str) -> str:
 
 
 # ──────────────────────────────────────────────
+# Ruff Linter
+# ──────────────────────────────────────────────
+
+@tool
+def run_ruff_linter(code: str) -> str:
+    """
+    Run the Ruff linter dynamically on Python code to identify
+    syntax errors, style issues, and code smells.
+
+    Args:
+        code: The Python source code to check.
+
+    Returns:
+        A structured string report of Ruff linter findings.
+    """
+    import subprocess
+    import json
+    import sys
+    import os
+
+    # Build venv path to ruff.exe on Windows
+    venv_bin = os.path.join(os.path.dirname(sys.executable), "ruff.exe")
+    if not os.path.exists(venv_bin):
+        # Fallback to general venv Scripts path relative to workspace
+        venv_bin = os.path.join(r"c:\Users\Dell\Downloads\Agentic Ai(LangGraph)", ".venv", "Scripts", "ruff.exe")
+
+    cmd = [venv_bin, "check", "--output-format=json", "--stdin-filename=source.py", "-"]
+
+    try:
+        process = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8"
+        )
+        stdout, stderr = process.communicate(input=code)
+    except Exception as e:
+        # Fallback to system wide ruff if venv ruff was not found
+        try:
+            process = subprocess.Popen(
+                ["ruff", "check", "--output-format=json", "--stdin-filename=source.py", "-"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                encoding="utf-8"
+            )
+            stdout, stderr = process.communicate(input=code)
+        except Exception as ex:
+            return f"[ERROR] Failed to execute Ruff linter: {e} (Fallback: {ex})"
+
+    if process.returncode not in (0, 1):
+        return f"[ERROR] Ruff process exited with code {process.returncode}: {stderr}"
+
+    try:
+        findings = json.loads(stdout)
+    except Exception as e:
+        return f"[ERROR] Failed to parse Ruff output: {e}. Output was: {stdout}"
+
+    if not findings:
+        return "[PASS] Ruff linter found no issues."
+
+    # Format findings
+    report_lines = [f"[WARN] Ruff linter found {len(findings)} issue(s):"]
+    for item in findings:
+        code_rule = item.get("code", "UNK")
+        message = item.get("message", "")
+        location = item.get("location", {})
+        line = location.get("row", 0)
+        col = location.get("column", 0)
+        report_lines.append(f"  - [{code_rule}] Line {line}, Col {col}: {message}")
+
+    return "\n".join(report_lines)
+
+
+# ──────────────────────────────────────────────
 # Tool Registry
 # ──────────────────────────────────────────────
 
@@ -295,4 +373,5 @@ ALL_TOOLS = [
     calculate_complexity,
     scan_security_patterns,
     check_code_patterns,
+    run_ruff_linter,
 ]
