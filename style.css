@@ -1,3 +1,101 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* Hide sidebar and toggle buttons */
 [data-testid="stSidebarCollapsedControl"] { display: none; }
 section[data-testid="stSidebar"] { display: none; }
+
+/* Premium Global Typography */
+.stApp {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background-color: #fafbfc;
+}
+
+/* Crisp Modern Headings */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.025em !important;
+    color: #111827 !important;
+}
+
+/* Premium Dashboard Metric Cards */
+[data-testid="stMetric"] {
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+[data-testid="stMetric"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+}
+
+/* Metric text formatting */
+[data-testid="stMetricLabel"] {
+    font-size: 0.78rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    font-weight: 600 !important;
+    color: #6b7280 !important;
+}
+[data-testid="stMetricValue"] {
+    font-size: 1.6rem !important;
+    font-weight: 800 !important;
+    color: #111827 !important;
+    line-height: 1.25 !important;
+}
+
+/* Form Settings Expander card */
+[data-testid="stExpander"] {
+    border: 1px solid #e5e7eb !important;
+    border-radius: 12px !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Premium Button style */
+.stButton>button {
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    padding: 10px 20px !important;
+    transition: all 0.2s ease !important;
+    background-color: #111827 !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+.stButton>button:hover {
+    background-color: #374151 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Clean monospaced code elements */
+code, pre {
+    font-family: 'JetBrains Mono', 'Courier New', Courier, monospace !important;
+}
+pre {
+    border-radius: 10px !important;
+    border: 1px solid #e5e7eb !important;
+    background-color: #f8fafc !important;
+}
+
+/* Clean Dashboard tabs */
+button[data-baseweb="tab"] {
+    font-weight: 500 !important;
+    font-size: 0.9rem !important;
+    color: #4b5563 !important;
+    padding: 12px 20px !important;
+    border-bottom: 2px solid transparent !important;
+}
+button[data-baseweb="tab"][aria-selected="true"] {
+    color: #111827 !important;
+    font-weight: 600 !important;
+    border-bottom-color: #111827 !important;
+}
+
+/* Divider lines style */
+hr {
+    border-color: #e5e7eb !important;
+}
