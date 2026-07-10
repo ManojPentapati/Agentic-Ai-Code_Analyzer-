@@ -5,20 +5,22 @@ A production-grade, **multi-agent AI system** built with **LangGraph** that perf
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.45+-FF4B4B?logo=streamlit&logoColor=white)
 ![LangGraph](https://img.shields.io/badge/LangGraph-Multi_Agent-green)
-![Groq](https://img.shields.io/badge/Groq-LLaMA_3.1-orange)
+![Groq](https://img.shields.io/badge/Groq-LLaMA_3.3-orange)
 
 ---
 
 ## 🚀 Features
 
-- **Multi-Agent Architecture** — Specialized agents for code review, security, and optimization
-- **Intelligent Routing** — Automatically selects analysis depth (Quick / Deep / Security-Focused)
-- **4 Functional Tools** — Language detection, complexity scoring, security scanning, pattern checking
-- **Conditional Graph Flow** — LangGraph with `add_conditional_edges` for dynamic routing
-- **Rich State Management** — TypedDict state with metadata, scores, and per-agent outputs
-- **Premium Streamlit UI** — Tabbed interface with metrics dashboard, export, and session history
-- **Multi-Model Support** — Switch between LLaMA 3.1 8B, LLaMA 3.3 70B, Gemma 2, and Mixtral
-- **Exportable Reports** — Download analysis reports as markdown
+- **Multi-Agent Architecture** — Specialized agents for code review, security, and optimization.
+- **Intelligent Routing** — Automatically selects analysis depth (Quick / Deep / Security-Focused).
+- **5 Functional Tools** — Language detection, complexity scoring, security scanning, pattern checking, and Ruff linter.
+- **📄 PDF Report Export** — Download styled code audits with scorecards and metrics tables.
+- **🔍 Interactive Code Diff** — Compare original vs. refactored code line-by-line with red (-) and green (+) annotations.
+- **🛡️ Dynamic Ruff Linting** — Run ruff check on python files to catch syntax and PEP 8 issues during preprocessing.
+- **📦 Git Repository URL Support** — Clone public repositories and index their source files to select and analyze them.
+- **Rich State Management** — TypedDict state with metadata, scores, and per-agent outputs.
+- **Premium Streamlit UI** — Modern, clean tabbed interface with metrics dashboard, diff views, and session history.
+- **Multi-Model Support** — Switch between LLaMA 3.1 8B, LLaMA 3.3 70B, Gemma 2, and Mixtral.
 
 ---
 
@@ -26,11 +28,10 @@ A production-grade, **multi-agent AI system** built with **LangGraph** that perf
 
 ```mermaid
 graph TD
-    A[START] --> B[🔧 Preprocess]
+    A[START] --> B[🔧 Preprocess & Ruff Lint]
     B --> C[🔀 Router Agent]
-    C -->|quick| D[🔍 Code Review]
-    C -->|deep| D
-    C -->|security_focused| D
+    C --> B1[Linear transitions]
+    B1 --> D[🔍 Code Review]
     D -->|quick| G[📊 Aggregator]
     D -->|deep| F[⚡ Optimization]
     D -->|security_focused| E[🔒 Security]
@@ -43,7 +44,7 @@ graph TD
 
 | Agent | Role |
 |---|---|
-| **Preprocessor** | Runs tools: language detection, complexity scoring, security scanning, pattern checking |
+| **Preprocessor** | Runs tools: language detection, complexity scoring, security scanning, pattern checking, and Ruff linter |
 | **Router** | Analyzes tool results and decides analysis path (quick / deep / security_focused) |
 | **Code Review** | Deep code review: bugs, logic errors, readability, best practices, refactored code |
 | **Security** | Vulnerability analysis: injection, secrets, OWASP Top 10, secure code rewrites |
@@ -60,6 +61,8 @@ graph TD
 | [LangChain](https://github.com/langchain-ai/langchain) | LLM framework, tools, and prompt management |
 | [Groq](https://groq.com/) | Ultra-fast LLM inference (LLaMA 3.1, 3.3, Gemma 2, Mixtral) |
 | [Streamlit](https://streamlit.io/) | Interactive web application with premium UI |
+| [FPDF2](https://github.com/py-pdf/fpdf2) | PDF document generation |
+| [Ruff](https://github.com/astral-sh/ruff) | Ultra-fast Python linter |
 | [python-dotenv](https://github.com/theskumar/python-dotenv) | Environment variable management |
 
 ---
@@ -69,11 +72,13 @@ graph TD
 ```
 Agentic-Ai-Code_Analyzer-/
 ├── app.py               # Streamlit entry point — premium UI with tabs & metrics
+├── pdf_generator.py     # PDF audit compiler using fpdf2
+├── style.css            # Custom CSS style accents
 ├── config.py            # Configuration, LLM factory, logging, multi-model support
 ├── state.py             # Rich state schema (TypedDict) for the LangGraph workflow
-├── tools.py             # 4 functional tools: language, complexity, security, patterns
+├── tools.py             # 5 functional tools: language, complexity, security, patterns, ruff
 ├── agents.py            # 5 specialized agent chains with expert system prompts
-├── graph.py             # LangGraph workflow builder with conditional routing
+├── graph.py             # LangGraph workflow builder with static/dynamic routing
 ├── requirements.txt     # Pinned dependencies
 ├── .env                 # API keys (not tracked)
 ├── .gitignore           # Git ignore rules
@@ -130,18 +135,19 @@ The app will open in your browser at `http://localhost:8501`.
 
 ## 🎯 How It Works
 
-1. **Paste** your code into the editor
-2. **Configure** model, temperature, and max tokens in the sidebar
-3. **Click** "🚀 Analyze Code"
-4. The system automatically:
+1. **Paste** your code or **select** a template, or **upload** a source file.
+2. Alternatively, enter a **Git Repository URL**, clone it, and select a file directly from the repo.
+3. **Configure** model, temperature, and max tokens in settings.
+4. **Click** "Run Analysis"
+5. The system automatically:
    - Detects the programming language
    - Calculates code complexity (0-100)
-   - Scans for security vulnerabilities
+   - Runs a security scan and Python syntax/style checking via **Ruff** linter
    - Routes to the appropriate analysis depth
    - Runs specialized agents in sequence
    - Aggregates results into a scored final report
-5. **Review** results across tabs: Full Report, Code Review, Security, Optimization
-6. **Download** the report as a markdown file
+6. **Review** results across tabs: Report, Compare, Vulnerabilities, Linter (Ruff), Performance, Scores.
+7. **Download** the report as a Markdown file or export it as a styled **PDF**.
 
 ---
 
