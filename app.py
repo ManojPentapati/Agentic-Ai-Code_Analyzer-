@@ -144,22 +144,21 @@ cloned_dir = None
 selected_git_file = None
 git_url = ""
 
-with st.expander(":material/settings: Settings & Configuration"):
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        selected_model = st.selectbox(
-            ":material/model_training: Model",
-            list(AVAILABLE_MODELS.keys()),
-            format_func=lambda x: AVAILABLE_MODELS[x],
-            index=list(AVAILABLE_MODELS.keys()).index(DEFAULT_MODEL),
-        )
-    with c2:
-        temperature = st.slider(":material/thermostat: Temperature", 0.0, 1.0, 0.0, 0.1)
-    with c3:
-        max_tokens = st.select_slider(":material/token: Max Tokens", [1024, 2048, 4096, 8192], 4096)
+# Model selector row — always visible
+cfg1, cfg2, cfg3 = st.columns(3)
+with cfg1:
+    selected_model = st.selectbox(
+        ":material/model_training: Model",
+        list(AVAILABLE_MODELS.keys()),
+        format_func=lambda x: AVAILABLE_MODELS[x],
+        index=list(AVAILABLE_MODELS.keys()).index(DEFAULT_MODEL),
+    )
+with cfg2:
+    temperature = st.slider(":material/thermostat: Temperature", 0.0, 1.0, 0.0, 0.1)
+with cfg3:
+    max_tokens = st.select_slider(":material/token: Max Tokens", [1024, 2048, 4096, 8192], 4096)
 
-    st.divider()
-
+with st.expander(":material/settings: Advanced Settings"):
     c4, c5 = st.columns(2)
     with c4:
         uploaded_file = st.file_uploader(
