@@ -6,6 +6,7 @@ A production-grade, **multi-agent AI system** built with **LangGraph** that perf
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.45+-FF4B4B?logo=streamlit&logoColor=white)
 ![LangGraph](https://img.shields.io/badge/LangGraph-Multi_Agent-green)
 ![Groq](https://img.shields.io/badge/Groq-LLaMA_3.3-orange)
+![CI/CD](https://github.com/ManojPentapati/Agentic-Ai-Code_Analyzer-/actions/workflows/ci.yml/badge.svg)
 
 ---
 
@@ -18,6 +19,10 @@ A production-grade, **multi-agent AI system** built with **LangGraph** that perf
 - **🔍 Interactive Code Diff** — Compare original vs. refactored code line-by-line with red (-) and green (+) annotations.
 - **🛡️ Dynamic Ruff Linting** — Run ruff check on python files to catch syntax and PEP 8 issues during preprocessing.
 - **📦 Git Repository URL Support** — Clone public repositories and index their source files to select and analyze them.
+- **⚡ Live Agentic Console (`st.status`)** — Dynamic execution logs detailing active node executions and results.
+- **📊 Complexity Color-Coded Gauge** — Color-coded indicators showing Low, Medium, and High complexity levels.
+- **📄 Code Panel Line Numbers** — Prepend toggleable line numbers to the comparison panel blocks.
+- **🚀 CI/CD Pipeline** — GitHub Actions configuration running Ruff linter check on git pushes.
 - **Rich State Management** — TypedDict state with metadata, scores, and per-agent outputs.
 - **Premium Streamlit UI** — Modern, clean tabbed interface with metrics dashboard, diff views, and session history.
 - **Multi-Model Support** — Switch between LLaMA 3.1 8B, LLaMA 3.3 70B, Gemma 2, and Mixtral.
@@ -71,6 +76,10 @@ graph TD
 
 ```
 Agentic-Ai-Code_Analyzer-/
+├── .github/workflows/   
+│   └── ci.yml           # GitHub Actions automated lint pipeline
+├── .streamlit/
+│   └── config.toml      # Forced light theme configurations
 ├── app.py               # Streamlit entry point — premium UI with tabs & metrics
 ├── pdf_generator.py     # PDF audit compiler using fpdf2
 ├── style.css            # Custom CSS style accents
@@ -146,7 +155,7 @@ The app will open in your browser at `http://localhost:8501`.
    - Routes to the appropriate analysis depth
    - Runs specialized agents in sequence
    - Aggregates results into a scored final report
-6. **Review** results across tabs: Report, Compare, Vulnerabilities, Linter (Ruff), Performance, Scores.
+6. **Review** results across tabs: Report, Compare, Vulnerabilities, Linter (Ruff), Performance, Scores, and Architecture.
 7. **Download** the report as a Markdown file or export it as a styled **PDF**.
 
 ---
