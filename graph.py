@@ -22,7 +22,6 @@ from langgraph.graph import StateGraph, START, END
 from state import AnalyzerState
 from tools import detect_language, calculate_complexity, scan_security_patterns, check_code_patterns, run_ruff_linter
 from agents import (
-    create_router_chain,
     create_code_review_chain,
     create_security_chain,
     create_optimization_chain,
@@ -90,33 +89,37 @@ def preprocess_node(state: AnalyzerState) -> dict:
 
 def router_node(state: AnalyzerState) -> dict:
     """
-    Router node: uses the LLM to decide which analysis path to take
-    based on the preprocessed data.
+    Router node: decides analysis path deterministically based on tool results.
+    Highly optimized to eliminate LLM network latency.
     """
-    logger.info("🔀 Router: deciding analysis path")
+    logger.info("🔀 Router: deciding analysis path deterministically")
 
-    config = state.get("_config", AppConfig())
-    llm = get_llm(config)
-    router_chain = create_router_chain(llm)
+    # Combine content from preprocess node
+    security_text = ""
+    for msg in state.get("messages", []):
+        if hasattr(msg, "content"):
+            security_text += msg.content
 
-    response = router_chain.invoke({"messages": state["messages"]})
-    decision = response.content.strip().lower()
+    # Rule 1: High or Critical security warning
+    has_high_security = "CRITICAL" in security_text or "HIGH" in security_text
 
-    # Validate the decision
-    valid_types = {"quick", "deep", "security_focused"}
-    if decision not in valid_types:
-        # Fallback heuristic
-        security_text = ""
-        for msg in state["messages"]:
-            if hasattr(msg, "content"):
-                security_text += msg.content
+    # Rule 2: Complexity threshold (40+ complexity score)
+    complexity = state.get("complexity_score", 0)
 
-        if "CRITICAL" in security_text or "HIGH" in security_text:
-            decision = "security_focused"
-        elif state.get("complexity_score", 0) >= 40:
-            decision = "deep"
-        else:
-            decision = "quick"
+    # Rule 3: Function count heuristic (3+ functions/methods)
+    code = state.get("query", "")
+    import re
+    func_count = len(re.findall(
+        r"\b(def|function|func|fn|void|public\s+static)\s+\w+\s*\(",
+        code, re.MULTILINE
+    ))
+
+    if has_high_security:
+        decision = "security_focused"
+    elif complexity >= 40 or func_count >= 3:
+        decision = "deep"
+    else:
+        decision = "quick"
 
     logger.info("🔀 Router decision: %s", decision)
 
