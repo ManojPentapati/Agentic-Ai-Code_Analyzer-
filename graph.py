@@ -13,8 +13,6 @@ Builds a multi-agent graph with conditional routing:
       → END
 """
 
-import time
-import logging
 from datetime import datetime, timezone
 
 from langchain_core.messages import HumanMessage, AIMessage
@@ -55,7 +53,7 @@ def preprocess_node(state: AnalyzerState) -> dict:
     if language.lower() == "python":
         lint_report = run_ruff_linter.invoke({"code": code})
     else:
-        lint_report = f"[INFO] Ruff linter is skipped (non-Python code)."
+        lint_report = "[INFO] Ruff linter is skipped (non-Python code)."
 
     # Extract complexity score from the tool output
     score = 0

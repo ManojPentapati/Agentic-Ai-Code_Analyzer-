@@ -10,6 +10,25 @@ from state import create_initial_state
 from graph import build_workflow
 from pdf_generator import generate_analysis_pdf
 
+
+def _parse_scores(text: str) -> dict:
+    """Parse star-rating scorecard from report text."""
+    scores = {
+        "Correctness": 80,
+        "Security": 90,
+        "Performance": 85,
+        "Readability": 80,
+        "Best Practices": 80,
+    }
+    if not text:
+        return scores
+    for cat, stars in re.findall(r"\|\s*([A-Za-z ]+)\s*\|\s*([*]+)\s*\|", text):
+        c = cat.strip()
+        if c in scores:
+            scores[c] = len(stars) * 20
+    return scores
+
+
 # --- Page Config ---
 
 st.set_page_config(
@@ -30,6 +49,8 @@ if "history" not in st.session_state:
     st.session_state.history = []
 if "current_result" not in st.session_state:
     st.session_state.current_result = None
+if "score_history" not in st.session_state:
+    st.session_state.score_history = []
 
 
 def clone_repo(repo_url: str) -> str | None:
@@ -279,6 +300,12 @@ if analyze:
                 status.update(label=f"Analysis complete in {elapsed:.1f}s!", state="complete", expanded=False)
 
                 if result:
+                    # Calculate health index score from aggregator report
+                    report = result.get("final_report", "")
+                    scores = _parse_scores(report)
+                    health = int(sum(scores.values()) / len(scores)) if scores else 0
+                    st.session_state.score_history.append(health)
+
                     st.session_state.current_result = {
                         "code": user_code,
                         "result": result,
@@ -293,24 +320,6 @@ if analyze:
                 st.error(f"Analysis failed: {e}")
 
 # --- Helpers ---
-
-
-def _parse_scores(text: str) -> dict:
-    """Parse star-rating scorecard from report text."""
-    scores = {
-        "Correctness": 80,
-        "Security": 90,
-        "Performance": 85,
-        "Readability": 80,
-        "Best Practices": 80,
-    }
-    if not text:
-        return scores
-    for cat, stars in re.findall(r"\|\s*([A-Za-z ]+)\s*\|\s*([*]+)\s*\|", text):
-        c = cat.strip()
-        if c in scores:
-            scores[c] = len(stars) * 20
-    return scores
 
 
 def _parse_vulns(text: str) -> list:
@@ -398,7 +407,7 @@ if st.session_state.get("current_result"):
     st.divider()
 
     # Tabbed Results
-    tab_report, tab_compare, tab_vulns, tab_linter, tab_perf, tab_scores = st.tabs(
+    tab_report, tab_compare, tab_vulns, tab_linter, tab_perf, tab_scores, tab_arch = st.tabs(
         [
             ":material/description: Report",
             ":material/compare: Compare",
@@ -406,6 +415,7 @@ if st.session_state.get("current_result"):
             ":material/bug_report: Linter (Ruff)",
             ":material/speed: Performance",
             ":material/star: Scores",
+            ":material/schema: Architecture",
         ]
     )
 
@@ -555,6 +565,47 @@ if st.session_state.get("current_result"):
         st.markdown("**Quality Scorecard**")
         for cat, sc in scores.items():
             st.progress(sc / 100, text=f"{cat}: {sc}%")
+
+        if len(st.session_state.score_history) > 1:
+            st.divider()
+            st.markdown("**Quality Progress Trend**")
+            st.line_chart(st.session_state.score_history)
+
+    with tab_arch:
+        st.markdown("**LangGraph Multi-Agent Architecture**")
+        st.caption("Visual representation of the compiled graph structure and dynamic agent routes:")
+        
+        # DOT language representation of graph
+        graph_dot = """
+        digraph G {
+            fontname="Helvetica,Arial,sans-serif"
+            bgcolor="transparent"
+            node [fontname="Helvetica,Arial,sans-serif", shape=box, style="filled,rounded", color="#e5e7eb", fillcolor="#ffffff", penwidth=2]
+            edge [fontname="Helvetica,Arial,sans-serif", color="#9ca3af", penwidth=2]
+            
+            START [shape=circle, fillcolor="#111827", fontcolor="#ffffff", color="#111827"]
+            preprocess [label="🔧 Preprocessor\\n(Ruff / Complexity)", fillcolor="#eff6ff", color="#3b82f6"]
+            router [label="🔀 Router Agent\\n(LLM Decision)", fillcolor="#f5f3ff", color="#8b5cf6"]
+            code_review [label="🔍 Senior Reviewer\\n(Quality Audit)", fillcolor="#ecfdf5", color="#10b981"]
+            security [label="🔒 Security Expert\\n(Vulnerabilities)", fillcolor="#fff5f5", color="#ef4444"]
+            optimize [label="⚡ Performance Eng.\\n(Execution Speed)", fillcolor="#fffbeb", color="#f59e0b"]
+            aggregate [label="📊 Aggregator\\n(Coherent Report)", fillcolor="#f0fdfa", color="#0d9488"]
+            END [shape=doublecircle, fillcolor="#111827", fontcolor="#ffffff", color="#111827"]
+            
+            START -> preprocess
+            preprocess -> router
+            router -> code_review
+            
+            code_review -> aggregate [label="Quick Route"]
+            code_review -> optimize [label="Deep Route"]
+            code_review -> security [label="Security Route"]
+            
+            security -> optimize
+            optimize -> aggregate
+            aggregate -> END
+        }
+        """
+        st.graphviz_chart(graph_dot)
 
 # --- History ---
 
