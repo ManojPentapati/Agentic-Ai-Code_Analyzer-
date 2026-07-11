@@ -115,3 +115,12 @@ footer { visibility: hidden; }
     box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.15) !important;
 }
 
+/* Dark black border on selectbox / dropdown */
+[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+    border: 2px solid #111827 !important;
+    border-radius: 10px !important;
+}
+[data-testid="stSelectbox"] [data-baseweb="select"] > div:focus-within {
+    border-color: #111827 !important;
+    box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.15) !important;
+}
