@@ -247,33 +247,36 @@ if analyze:
             state = create_initial_state(user_code)
             state["_config"] = config
 
-            bar = st.progress(0, text="Preparing...")
             t0 = time.time()
+            result = None
 
             try:
-                steps = [
-                    (15, "Running static analysis tools..."),
-                    (30, "Routing to specialists..."),
-                    (55, "Code review in progress..."),
-                    (75, "Security and performance scan..."),
-                    (90, "Aggregating final report..."),
-                ]
-                si = 0
-                result = None
+                with st.status("Analyzing code...", expanded=True) as status:
+                    st.write("🔧 **Initializing workflow...**")
+                    for chunk in wf.stream(state):
+                        for node_name, out in chunk.items():
+                            if result is None:
+                                result = {}
+                            result.update(out)
 
-                for chunk in wf.stream(state):
-                    if si < len(steps):
-                        bar.progress(steps[si][0], text=steps[si][1])
-                        si += 1
-                    for _, out in chunk.items():
-                        if result is None:
-                            result = {}
-                        result.update(out)
+                            if node_name == "preprocess":
+                                lang_label = out.get("language", "unknown").upper()
+                                comp_val = out.get("complexity_score", 0)
+                                st.write(f"📥 **Preprocessing complete** · Detected: `{lang_label}` (Complexity: `{comp_val}/100`)")
+                            elif node_name == "router":
+                                route_label = out.get("analysis_type", "quick").upper()
+                                st.write(f"🔀 **Router complete** · Routing to: `{route_label}` depth")
+                            elif node_name == "code_review":
+                                st.write("🔍 **Senior Reviewer complete** · Code standards and readability assessed")
+                            elif node_name == "security":
+                                st.write("🔒 **Security Expert complete** · Vulnerability vulnerabilities audited")
+                            elif node_name == "optimize":
+                                st.write("⚡ **Performance Engineer complete** · Runtime complexity optimized")
+                            elif node_name == "aggregate":
+                                st.write("📊 **Aggregator complete** · Compiling executive quality scorecard")
 
                 elapsed = time.time() - t0
-                bar.progress(100, text=f"Done in {elapsed:.1f}s")
-                time.sleep(0.4)
-                bar.empty()
+                status.update(label=f"Analysis complete in {elapsed:.1f}s!", state="complete", expanded=False)
 
                 if result:
                     st.session_state.current_result = {
@@ -286,7 +289,6 @@ if analyze:
                     st.rerun()
 
             except Exception as e:
-                bar.empty()
                 logger.exception("Analysis failed")
                 st.error(f"Analysis failed: {e}")
 
