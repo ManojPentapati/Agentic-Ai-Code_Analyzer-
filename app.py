@@ -358,10 +358,21 @@ if st.session_state.get("current_result"):
 
     st.divider()
 
+    # Determine complexity category and label for color-coding
+    if cpx <= 30:
+        cpx_lbl = "Low"
+        cpx_delta = "- Good"
+    elif cpx <= 60:
+        cpx_lbl = "Medium"
+        cpx_delta = "Moderate"
+    else:
+        cpx_lbl = "High"
+        cpx_delta = "+ Alert"
+
     # Metrics Row (native st.metric)
     m1, m2, m3, m4, m5 = st.columns(5)
     m1.metric("Health Index", f"{health}%")
-    m2.metric("Complexity", f"{cpx}/100")
+    m2.metric("Complexity", f"{cpx}/100 ({cpx_lbl})", delta=cpx_delta, delta_color="inverse")
     m3.metric("Language", lang.upper())
     m4.metric("Route", route_label)
     m5.metric("Time", f"{dur:.1f}s")
@@ -436,21 +447,35 @@ if st.session_state.get("current_result"):
         if not ref:
             st.info("No refactored code was returned by the agents.")
         else:
-            layout = st.radio(
-                "Comparison Layout",
-                ["Side-by-side", "Unified Diff"],
-                horizontal=True,
-                key="diff_layout_select",
-            )
+            col_lay, col_num = st.columns([2, 1])
+            with col_lay:
+                layout = st.radio(
+                    "Comparison Layout",
+                    ["Side-by-side", "Unified Diff"],
+                    horizontal=True,
+                    key="diff_layout_select",
+                )
+            with col_num:
+                show_lines = st.toggle("Show line numbers", value=False)
+
+            def _add_line_numbers(text_code: str) -> str:
+                lines_list = text_code.splitlines()
+                if not lines_list:
+                    return ""
+                max_w = len(str(len(lines_list)))
+                return "\n".join(f"{i+1:>{max_w}} | {line}" for i, line in enumerate(lines_list))
+
+            orig_disp = _add_line_numbers(rd["code"]) if show_lines else rd["code"]
+            ref_disp = _add_line_numbers(ref) if show_lines else ref
 
             if layout == "Side-by-side":
                 lc, rc = st.columns(2)
                 with lc:
                     st.markdown("**Original Code**")
-                    st.code(rd["code"], language=lang if lang != "unknown" else "python")
+                    st.code(orig_disp, language=lang if lang != "unknown" and not show_lines else "text")
                 with rc:
                     st.markdown("**Refactored Code**")
-                    st.code(ref, language=lang if lang != "unknown" else "python")
+                    st.code(ref_disp, language=lang if lang != "unknown" and not show_lines else "text")
             else:
                 import difflib
                 diff = difflib.unified_diff(
