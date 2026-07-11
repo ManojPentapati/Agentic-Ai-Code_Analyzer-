@@ -296,8 +296,9 @@ if analyze:
                             elif node_name == "aggregate":
                                 st.write("📊 **Aggregator complete** · Compiling executive quality scorecard")
 
-                elapsed = time.time() - t0
-                status.update(label=f"Analysis complete in {elapsed:.1f}s!", state="complete", expanded=False)
+                    elapsed = time.time() - t0
+                    status.update(label=f"Analysis complete in {elapsed:.1f}s!", state="complete", expanded=False)
+                    time.sleep(1.0)
 
                 if result:
                     # Calculate health index score from aggregator report
@@ -316,6 +317,9 @@ if analyze:
                     st.rerun()
 
             except Exception as e:
+                # Update status to error state instead of leaving it spinning/stuck
+                if 'status' in locals():
+                    status.update(label="Analysis failed!", state="error", expanded=True)
                 logger.exception("Analysis failed")
                 st.error(f"Analysis failed: {e}")
 
