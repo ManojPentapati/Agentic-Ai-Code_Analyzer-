@@ -132,7 +132,7 @@ def list_code_files(dir_path: str) -> list[str]:
 top_left, top_right = st.columns([3, 1])
 with top_left:
     st.markdown("## :material/analytics: Code Analyzer")
-    st.caption("Multi-agent code review, security analysis & performance optimization")
+    st.caption(":material/hub: Multi-agent code review, security analysis & performance optimization")
 with top_right:
     st.metric("Total Runs", len(st.session_state.history))
 
@@ -148,27 +148,27 @@ with st.expander(":material/settings: Settings & Configuration"):
     c1, c2, c3 = st.columns(3)
     with c1:
         selected_model = st.selectbox(
-            "Model",
+            ":material/model_training: Model",
             list(AVAILABLE_MODELS.keys()),
             format_func=lambda x: AVAILABLE_MODELS[x],
             index=list(AVAILABLE_MODELS.keys()).index(DEFAULT_MODEL),
         )
     with c2:
-        temperature = st.slider("Temperature", 0.0, 1.0, 0.0, 0.1)
+        temperature = st.slider(":material/thermostat: Temperature", 0.0, 1.0, 0.0, 0.1)
     with c3:
-        max_tokens = st.select_slider("Max Tokens", [1024, 2048, 4096, 8192], 4096)
+        max_tokens = st.select_slider(":material/token: Max Tokens", [1024, 2048, 4096, 8192], 4096)
 
     st.divider()
 
     c4, c5 = st.columns(2)
     with c4:
         uploaded_file = st.file_uploader(
-            "Upload code file",
+            ":material/upload_file: Upload code file",
             type=["py", "js", "ts", "rs", "go", "cpp", "c", "java", "sql", "html", "css"],
         )
     with c5:
         git_url = st.text_input(
-            "Clone public Git Repository URL",
+            ":material/link: Clone public Git Repository URL",
             placeholder="https://github.com/username/repo",
             help="Provide a public git repository URL to index and analyze its source files."
         )
@@ -226,7 +226,7 @@ if git_url and selected_git_file and selected_git_file != "-- Choose a file --" 
         st.error(f"Failed to read file: {e}")
 
 with col_opts:
-    st.markdown("**Load a template**")
+    st.markdown(":material/library_books: **Load a template**")
     tpl = st.selectbox(
         "template_select",
         list(TEMPLATES.keys()),
@@ -236,18 +236,20 @@ with col_opts:
         initial_code = TEMPLATES[tpl]
 
     st.markdown("---")
-    st.markdown(f"**Model:** {AVAILABLE_MODELS[selected_model]}")
-    st.markdown(f"**Temp:** {temperature}  |  **Tokens:** {max_tokens}")
+    st.markdown(f":material/model_training: **Model:** {AVAILABLE_MODELS[selected_model]}")
+    st.markdown(f":material/thermostat: **Temp:** {temperature}  |  :material/token: **Tokens:** {max_tokens}")
 
 with col_code:
     user_code = st.text_area(
-        "Paste your code here",
+        ":material/code: Paste your code here",
         value=initial_code,
         height=260,
         placeholder="Paste code here, or pick a template from the right panel",
     )
 
-analyze = st.button("Run Analysis", type="primary", icon=":material/play_arrow:", use_container_width=True)
+_btn_pad_l, _btn_center, _btn_pad_r = st.columns([2, 1, 2])
+with _btn_center:
+    analyze = st.button("Run Analysis", type="primary", icon=":material/play_arrow:", use_container_width=True)
 
 # --- Execution ---
 
@@ -391,7 +393,7 @@ if st.session_state.get("current_result"):
     m5.metric("Time", f"{dur:.1f}s")
 
     # Pipeline (native st.columns)
-    st.markdown("**Agent Pipeline:**")
+    st.markdown(":material/route: **Agent Pipeline:**")
     all_nodes = [
         ("Preprocess", True),
         ("Router", True),
@@ -464,13 +466,13 @@ if st.session_state.get("current_result"):
             col_lay, col_num = st.columns([2, 1])
             with col_lay:
                 layout = st.radio(
-                    "Comparison Layout",
+                    ":material/view_column: Comparison Layout",
                     ["Side-by-side", "Unified Diff"],
                     horizontal=True,
                     key="diff_layout_select",
                 )
             with col_num:
-                show_lines = st.toggle("Show line numbers", value=False)
+                show_lines = st.toggle(":material/format_list_numbered: Show line numbers", value=False)
 
             def _add_line_numbers(text_code: str) -> str:
                 lines_list = text_code.splitlines()
@@ -485,10 +487,10 @@ if st.session_state.get("current_result"):
             if layout == "Side-by-side":
                 lc, rc = st.columns(2)
                 with lc:
-                    st.markdown("**Original Code**")
+                    st.markdown(":material/edit_document: **Original Code**")
                     st.code(orig_disp, language=lang if lang != "unknown" and not show_lines else "text")
                 with rc:
-                    st.markdown("**Refactored Code**")
+                    st.markdown(":material/auto_fix_high: **Refactored Code**")
                     st.code(ref_disp, language=lang if lang != "unknown" and not show_lines else "text")
             else:
                 import difflib
@@ -505,7 +507,7 @@ if st.session_state.get("current_result"):
                 else:
                     diff_text = "\n".join(diff_list)
 
-                st.markdown("**Unified Diff**")
+                st.markdown(":material/difference: **Unified Diff**")
                 st.code(diff_text, language="diff")
 
     with tab_vulns:
@@ -537,7 +539,7 @@ if st.session_state.get("current_result"):
 
         if sec_text:
             st.divider()
-            st.markdown("**Detailed Security Report**")
+            st.markdown(":material/shield: **Detailed Security Report**")
             st.markdown(sec_text)
 
     with tab_linter:
@@ -566,18 +568,18 @@ if st.session_state.get("current_result"):
             )
 
     with tab_scores:
-        st.markdown("**Quality Scorecard**")
+        st.markdown(":material/scoreboard: **Quality Scorecard**")
         for cat, sc in scores.items():
             st.progress(sc / 100, text=f"{cat}: {sc}%")
 
         if len(st.session_state.score_history) > 1:
             st.divider()
-            st.markdown("**Quality Progress Trend**")
+            st.markdown(":material/trending_up: **Quality Progress Trend**")
             st.line_chart(st.session_state.score_history)
 
     with tab_arch:
-        st.markdown("**LangGraph Multi-Agent Architecture**")
-        st.caption("Visual representation of the compiled graph structure and dynamic agent routes:")
+        st.markdown(":material/account_tree: **LangGraph Multi-Agent Architecture**")
+        st.caption(":material/visibility: Visual representation of the compiled graph structure and dynamic agent routes:")
         
         # DOT language representation of graph
         graph_dot = """
@@ -616,7 +618,7 @@ if st.session_state.get("current_result"):
 hist = st.session_state.get("history", [])
 if len(hist) > 1:
     st.divider()
-    st.markdown("#### Previous Runs")
+    st.markdown("#### :material/history: Previous Runs")
     for i, entry in enumerate(reversed(hist[:-1])):
         hl = entry["result"].get("language", "unknown")
         ht = entry["result"].get("analysis_type", "quick")

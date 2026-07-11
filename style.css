@@ -104,3 +104,14 @@ hr {
 #MainMenu { visibility: hidden; }
 header { visibility: hidden; }
 footer { visibility: hidden; }
+
+/* Dark black border on text areas */
+[data-testid="stTextArea"] textarea {
+    border: 2px solid #111827 !important;
+    border-radius: 10px !important;
+}
+[data-testid="stTextArea"] textarea:focus {
+    border-color: #111827 !important;
+    box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.15) !important;
+}
+
