@@ -168,6 +168,8 @@ def generate_analysis_pdf(report_data: dict) -> bytes:
         line_str = line.rstrip("\r\n")
         # Simple tab replacement
         line_str = line_str.replace("\t", "    ")
+        # Strip characters outside Latin-1 range to prevent FPDF crash on source code comments
+        line_str = "".join(c for c in line_str if ord(c) < 256)
         # Ensure we don't break the cell
         pdf.cell(0, 4, line_str, border=0, fill=True, new_x="LMARGIN", new_y="NEXT")
 
@@ -196,12 +198,19 @@ def _extract_scores(report_text: str) -> dict:
 
 
 def _clean_markdown(text: str) -> str:
-    """Clean markdown styling like asterisks and HTML tags for PDF rendering."""
+    """Clean markdown styling and strip emojis/unsupported chars for PDF rendering."""
     # Remove bold/italic markers
     text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
     text = re.sub(r"\*([^*]+)\*", r"\1", text)
     # Remove code tick marks
     text = re.sub(r"`([^`]+)`", r"\1", text)
-    # Remove emoji markers or unsupported unicode where possible
     text = text.replace("⭐", "*")
-    return text
+    
+    # Strip any emojis and non-latin1 characters to prevent FPDF font errors
+    # WinAnsi/Latin-1 compatible characters are within the range 0-255
+    cleaned_chars = []
+    for char in text:
+        if ord(char) < 256:
+            cleaned_chars.append(char)
+            
+    return "".join(cleaned_chars)
